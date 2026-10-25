@@ -1,0 +1,206 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+  <meta name="referrer" content="no-referrer">
+  <meta name="theme-color" content="#010409">
+  <title>ARQ Beam</title>
+  <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Ccircle cx='16' cy='16' r='16' fill='%23f0f6fc'/%3E%3Cpath d='M7.3 17a10 10 0 0 1 17.4 0M11.2 19.3a5.5 5.5 0 0 1 9.6 0' stroke='%23010409' stroke-width='2.6' fill='none' stroke-linecap='round'/%3E%3Ccircle cx='16' cy='22.5' r='2.2' fill='%23010409'/%3E%3C/svg%3E">
+  <style>
+    :root {
+      --bg: #0d1117; --bg-muted: #151b23; --bg-inset: #010409; --border: #3d444d; --fg: #f0f6fc; --fg-muted: #9198a1;
+      --accent-em: #1f6feb; --success: #3fb950; --success-em: #238636; --danger: #f85149; --btn-bg: #212830; --btn-hover: #262c36;
+      color-scheme: dark;
+    }
+    * { box-sizing: border-box; }
+    html, body { margin: 0; }
+    body {
+      min-height: 100vh; background: var(--bg); color: var(--fg); -webkit-text-size-adjust: 100%;
+      font: 16px/1.5 -apple-system, BlinkMacSystemFont, "Segoe UI", "Noto Sans", Helvetica, Arial, sans-serif;
+    }
+    [hidden] { display: none !important; }
+    .header {
+      display: flex; align-items: center; gap: 12px; height: 56px; padding: 0 16px; padding-top: env(safe-area-inset-top);
+      box-sizing: content-box; background: var(--bg-inset); border-bottom: 1px solid var(--border); font-weight: 600;
+    }
+    main { max-width: 560px; margin: 0 auto; padding: 16px; }
+    .box { background: var(--bg); border: 1px solid var(--border); border-radius: 6px; }
+    .box-header { padding: 12px 16px; background: var(--bg-muted); border-bottom: 1px solid var(--border); border-radius: 6px 6px 0 0; }
+    .box-header h1 { margin: 0; font-size: 16px; font-weight: 600; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+    .box-body { padding: 16px; }
+    label.lbl { display: block; margin-bottom: 6px; font-size: 14px; color: var(--fg-muted); }
+    .row { display: flex; gap: 8px; }
+    .input {
+      flex: 1; min-width: 0; height: 44px; padding: 0 12px; font: 600 20px ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+      letter-spacing: .2em; color: var(--fg); background: var(--bg); border: 1px solid var(--border); border-radius: 6px; outline: none;
+    }
+    .input:focus { border-color: var(--accent-em); box-shadow: inset 0 0 0 1px var(--accent-em); }
+    .btn {
+      display: inline-flex; align-items: center; justify-content: center; gap: 8px; height: 44px; padding: 0 16px;
+      font-family: inherit; font-size: 16px; font-weight: 500; color: var(--fg); background: var(--btn-bg);
+      border: 1px solid var(--border); border-radius: 6px; cursor: pointer; -webkit-tap-highlight-color: transparent;
+    }
+    .btn:active { background: var(--btn-hover); }
+    .btn.primary { width: 100%; height: 52px; color: #fff; background: var(--success-em); border-color: #f0f6fc1a; font-weight: 600; }
+    .btn.primary:active { background: #29903b; }
+    .err { margin: 8px 0 0; font-size: 14px; color: var(--danger); min-height: 21px; }
+    .list { list-style: none; margin: 16px 0 0; padding: 0; display: grid; gap: 8px; }
+    .item { padding: 12px; border: 1px solid var(--border); border-radius: 6px; }
+    .item .top { display: flex; gap: 8px; align-items: baseline; }
+    .item .nm { flex: 1; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; font-weight: 600; }
+    .item .sz { font-size: 13px; color: var(--fg-muted); white-space: nowrap; }
+    .bar { height: 8px; margin: 8px 0 6px; border-radius: 6px; background: var(--btn-hover); overflow: hidden; }
+    .bar i { display: block; width: 0; height: 100%; background: var(--accent-em); }
+    .item.done .bar i { background: var(--success-em); }
+    .item.failed .bar i { background: var(--danger); }
+    .st { font-size: 13px; color: var(--fg-muted); }
+    .item.done .st { color: var(--success); }
+    .item.failed .st { color: var(--danger); }
+    .note { margin: 16px 4px 0; font-size: 13px; color: var(--fg-muted); }
+  </style>
+</head>
+<body>
+  <header class="header">
+    <svg width="28" height="28" viewBox="0 0 32 32" aria-hidden="true">
+      <circle cx="16" cy="16" r="16" fill="#f0f6fc"/>
+      <path d="M7.3 17a10 10 0 0 1 17.4 0M11.2 19.3a5.5 5.5 0 0 1 9.6 0" stroke="#010409" stroke-width="2.6" fill="none" stroke-linecap="round"/>
+      <circle cx="16" cy="22.5" r="2.2" fill="#010409"/>
+    </svg>
+    ARQ Beam
+  </header>
+  <main>
+    <section class="box">
+      <div class="box-header"><h1 id="title">Send to computer</h1></div>
+      <div class="box-body">
+        <form id="pinForm" hidden>
+          <label class="lbl" for="pin">PIN shown on the computer</label>
+          <div class="row">
+            <input class="input" id="pin" inputmode="numeric" pattern="[0-9]*" maxlength="6" autocomplete="one-time-code" required>
+            <button class="btn" type="submit">Connect</button>
+          </div>
+          <p class="err" id="pinErr"></p>
+        </form>
+        <div id="ready" hidden>
+          <label class="btn primary" for="files">
+            <svg width="20" height="20" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M8 10.5v-8M4.5 6 8 2.5 11.5 6M2.5 10.5v2a1 1 0 0 0 1 1h9a1 1 0 0 0 1-1v-2"/></svg>
+            Choose files
+          </label>
+          <input type="file" id="files" multiple hidden>
+          <ul class="list" id="list"></ul>
+        </div>
+      </div>
+    </section>
+    <p class="note">Sent over your Wi-Fi with plain HTTP, not the ARQ protocol. Keep this page open until uploads finish.</p>
+  </main>
+  <script>
+    'use strict';
+    (() => {
+      const $ = (id) => document.getElementById(id);
+      let pin = (new URLSearchParams(location.search).get('pin') || '').replace(/\D/g, '').slice(0, 6);
+      const queue = [];
+      let busy = false;
+
+      const fmtBytes = (n) => {
+        if (n < 1024) return `${n} B`;
+        const u = ['KB', 'MB', 'GB', 'TB'];
+        let i = -1;
+        do { n /= 1024; i++; } while (n >= 1024 && i < u.length - 1);
+        return `${n.toFixed(n < 10 ? 1 : 0)} ${u[i]}`;
+      };
+
+      function askPin(msg) {
+        $('ready').hidden = true;
+        $('pinForm').hidden = false;
+        $('pinErr').textContent = msg || '';
+        $('pin').value = pin;
+      }
+
+      async function connect() {
+        if (!/^\d{6}$/.test(pin)) return askPin('');
+        try {
+          const r = await fetch(`/info?pin=${pin}`, { cache: 'no-store' });
+          const j = await r.json().catch(() => ({}));
+          if (!r.ok) return askPin(j.error || 'Could not connect');
+          $('title').textContent = `Send to ${j.name}`;
+          $('pinForm').hidden = true;
+          $('ready').hidden = false;
+          if (location.search !== `?pin=${pin}`) history.replaceState(null, '', `/?pin=${pin}`);
+          next();
+        } catch {
+          askPin('The computer did not answer. Is ARQ Beam still running?');
+        }
+      }
+
+      $('pinForm').addEventListener('submit', (e) => {
+        e.preventDefault();
+        pin = $('pin').value.replace(/\D/g, '').slice(0, 6);
+        connect();
+      });
+
+      $('files').addEventListener('change', (e) => {
+        for (const file of e.target.files) {
+          const li = document.createElement('li');
+          li.className = 'item';
+          li.innerHTML = '<div class="top"><span class="nm"></span><span class="sz"></span></div><div class="bar"><i></i></div><div class="st">Waiting</div>';
+          li.querySelector('.nm').textContent = file.name;
+          li.querySelector('.sz').textContent = fmtBytes(file.size);
+          $('list').append(li);
+          queue.push({ file, li });
+        }
+        e.target.value = '';
+        next();
+      });
+
+      function next() {
+        if (busy || !queue.length || $('ready').hidden) return;
+        busy = true;
+        const { file, li } = queue[0];
+        const bar = li.querySelector('.bar i');
+        const st = li.querySelector('.st');
+        const t0 = Date.now();
+        const xhr = new XMLHttpRequest();
+        xhr.open('POST', `/upload?pin=${pin}&name=${encodeURIComponent(file.name)}`);
+        xhr.upload.onprogress = (e) => {
+          if (!e.lengthComputable) return;
+          const p = e.loaded / e.total;
+          const secs = (Date.now() - t0) / 1000;
+          bar.style.width = `${(p * 100).toFixed(1)}%`;
+          st.textContent = `${Math.floor(p * 100)}%${secs > 0.5 ? ` · ${fmtBytes(e.loaded / secs)}/s` : ''}`;
+        };
+        const finish = (ok, msg) => {
+          li.classList.add(ok ? 'done' : 'failed');
+          bar.style.width = '100%';
+          st.textContent = msg;
+          busy = false;
+        };
+        xhr.onload = () => {
+          let j = {};
+          try { j = JSON.parse(xhr.responseText); } catch { /* not JSON */ }
+          if (xhr.status === 403 || xhr.status === 429) {
+            busy = false;
+            st.textContent = 'Waiting';
+            return askPin(j.error || 'Enter the PIN again');
+          }
+          queue.shift();
+          if (xhr.status === 200) finish(true, `Saved as ${j.savedAs} · ${((Date.now() - t0) / 1000).toFixed(1)} s`);
+          else finish(false, j.error || `Failed (${xhr.status})`);
+          next();
+        };
+        xhr.onerror = () => {
+          queue.shift();
+          finish(false, 'Connection lost');
+          next();
+        };
+        xhr.send(file);
+      }
+
+      window.addEventListener('beforeunload', (e) => {
+        if (busy) e.preventDefault();
+      });
+
+      connect();
+    })();
+  </script>
+</body>
+</html>

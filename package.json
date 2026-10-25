@@ -1,0 +1,15 @@
+{
+  "name": "arq-beam",
+  "version": "1.0.0",
+  "description": "Reliable LAN file transfer over UDP using Adaptive Selective Repeat ARQ, with a live dashboard.",
+  "main": "server.js",
+  "bin": { "arq-beam": "server.js" },
+  "scripts": {
+    "start": "node server.js",
+    "peer": "node server.js --port 47810 --name Second-Device",
+    "test": "node test/loopback-test.js 8",
+    "build": "node scripts/build-exe.js"
+  },
+  "engines": { "node": ">=20" },
+  "license": "MIT"
+}

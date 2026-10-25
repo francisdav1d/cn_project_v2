@@ -1,0 +1,252 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>ARQ Beam</title>
+  <meta name="description" content="Reliable LAN file transfer over UDP with Selective Repeat ARQ and an adaptive sliding window.">
+  <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Ccircle cx='16' cy='16' r='16' fill='%23f0f6fc'/%3E%3Cpath d='M7.3 17a10 10 0 0 1 17.4 0M11.2 19.3a5.5 5.5 0 0 1 9.6 0' stroke='%23010409' stroke-width='2.6' fill='none' stroke-linecap='round'/%3E%3Ccircle cx='16' cy='22.5' r='2.2' fill='%23010409'/%3E%3C/svg%3E">
+  <link rel="stylesheet" href="style.css">
+</head>
+<body>
+  <header class="header">
+    <svg class="logo" width="32" height="32" viewBox="0 0 32 32" aria-hidden="true">
+      <circle cx="16" cy="16" r="16" fill="currentColor"/>
+      <path d="M7.3 17a10 10 0 0 1 17.4 0M11.2 19.3a5.5 5.5 0 0 1 9.6 0" stroke="#010409" stroke-width="2.6" fill="none" stroke-linecap="round"/>
+      <circle cx="16" cy="22.5" r="2.2" fill="#010409"/>
+    </svg>
+    <h1 class="title">ARQ Beam</h1>
+    <div class="header-box" title="This device">
+      <svg class="oct" width="16" height="16" viewBox="0 0 16 16" aria-hidden="true"><rect x="1.5" y="2.5" width="13" height="8.5" rx="1"/><path d="M5.5 14h5M8 11v3"/></svg>
+      <b id="meName">…</b><span class="mono" id="meAddr"></span>
+    </div>
+    <button class="btn small" id="phoneBtn" title="Receive files from a phone">
+      <svg class="oct" width="16" height="16" viewBox="0 0 16 16" aria-hidden="true"><rect x="4" y="1.5" width="8" height="13" rx="1.5"/><path d="M7 12.5h2"/></svg><span>Phone</span>
+    </button>
+    <span class="tag live" id="linkTag">Live</span>
+  </header>
+
+  <nav class="tabnav" id="modeSwitch" data-mode="send" role="tablist" aria-label="Mode">
+    <button role="tab" data-mode="send" aria-selected="true">
+      <svg class="oct" width="16" height="16" viewBox="0 0 16 16" aria-hidden="true"><path d="M8 13.5v-11M3.5 7 8 2.5 12.5 7"/></svg>Send
+    </button>
+    <button role="tab" data-mode="receive" aria-selected="false">
+      <svg class="oct" width="16" height="16" viewBox="0 0 16 16" aria-hidden="true"><path d="M8 2.5v11M3.5 9 8 13.5 12.5 9"/></svg>Receive<span class="Counter primary" id="pendingBadge" hidden>0</span>
+    </button>
+  </nav>
+
+  <div class="page">
+    <!-- ============================================================ SIDEBAR -->
+    <aside class="sidebar">
+      <div class="sidebar-inner">
+        <section class="side-section" id="sendPanel">
+          <h2 class="side-title">Send a file</h2>
+          <label class="drop" id="drop" tabindex="0">
+            <input type="file" id="fileInput" hidden>
+            <svg class="oct" width="24" height="24" viewBox="0 0 16 16" aria-hidden="true"><path d="M8 10.5v-8M4.5 6 8 2.5 11.5 6M2.5 10.5v2a1 1 0 0 0 1 1h9a1 1 0 0 0 1-1v-2"/></svg>
+            <span>Drop a file here or <span class="link">choose one</span></span>
+            <div class="progress" id="stageProgress" hidden><i></i></div>
+          </label>
+          <div class="file-chip" id="fileChip" hidden>
+            <svg class="oct" width="16" height="16" viewBox="0 0 16 16" aria-hidden="true"><path d="M4 1.5h5L12.5 5v9a.5.5 0 0 1-.5.5H4a.5.5 0 0 1-.5-.5V2a.5.5 0 0 1 .5-.5zM9 1.5V5h3.5"/></svg>
+            <div class="txt">
+              <div class="name" id="fileName"></div>
+              <div class="sub mono" id="fileSub"></div>
+            </div>
+            <button class="btn ghost small icon" id="clearFile" title="Remove" aria-label="Remove file">
+              <svg class="oct" width="16" height="16" viewBox="0 0 16 16" aria-hidden="true"><path d="M4 4l8 8M12 4l-8 8"/></svg>
+            </button>
+          </div>
+
+          <div class="side-head">
+            <h2 class="side-title">Devices <span class="Counter" id="peerCount">1</span></h2>
+            <span class="tag" id="discoTag">scanning</span>
+            <button class="btn ghost small icon" id="rescan" title="Scan again" aria-label="Scan again">
+              <svg class="oct" width="16" height="16" viewBox="0 0 16 16" aria-hidden="true"><path d="M13.5 8a5.5 5.5 0 0 1-9.7 3.5M2.5 8a5.5 5.5 0 0 1 9.7-3.5M12.5 1.5v3h-3M3.5 14.5v-3h3"/></svg>
+            </button>
+          </div>
+          <ul class="nav-list" id="peers"></ul>
+          <details class="manual">
+            <summary>Add by IP</summary>
+            <div class="row">
+              <input class="input" id="manualIp" placeholder="192.168.1.20" inputmode="decimal" aria-label="IP address">
+              <input class="input" id="manualPort" placeholder="47801" style="max-width:84px" inputmode="numeric" aria-label="Port">
+              <button class="btn" id="manualAdd">Add</button>
+            </div>
+          </details>
+
+          <div class="actions">
+            <button class="btn primary" id="startBtn" disabled>
+              <svg width="16" height="16" viewBox="0 0 16 16" fill="currentColor" aria-hidden="true"><path d="M5 3.5v9l7-4.5z"/></svg>Start transfer
+            </button>
+            <button class="btn" id="pauseBtn" disabled>Pause</button>
+            <button class="btn danger" id="cancelBtn" disabled>Cancel</button>
+          </div>
+        </section>
+
+        <section class="side-section" id="receivePanel" hidden>
+          <h2 class="side-title">Receiving on</h2>
+          <div class="mono addr" id="listenAddr"></div>
+          <label class="toggle">Accept files automatically
+            <input type="checkbox" id="autoAccept"><span class="sw"></span>
+          </label>
+          <div id="offers"></div>
+          <div id="rxNow"></div>
+          <div class="side-head" id="phoneSection">
+            <h2 class="side-title">From a phone</h2>
+          </div>
+          <label class="toggle">Phone upload page
+            <input type="checkbox" id="phoneOn"><span class="sw"></span>
+          </label>
+          <p class="hint bad-ink" id="phoneErr" hidden></p>
+          <div class="phone" id="phoneBox" hidden>
+            <div class="qr" id="phoneQr"></div>
+            <p class="hint center">Scan with the phone's camera. Same Wi-Fi.</p>
+            <select class="input" id="phoneAddr" aria-label="Address" hidden></select>
+            <div class="phone-url mono" id="phoneUrl"></div>
+            <div class="phone-pin">PIN <b class="mono" id="phonePin"></b>
+              <button class="btn ghost small" id="phonePinNew">New PIN</button>
+            </div>
+            <div id="phoneUploads"></div>
+          </div>
+          <div class="side-head">
+            <h2 class="side-title">Received files</h2>
+            <button class="btn ghost small" id="openFolder">Open folder</button>
+          </div>
+          <ul class="nav-list hist" id="history"></ul>
+          <p class="hint mono" id="saveDir"></p>
+        </section>
+
+        <section class="side-section" id="impairCard">
+          <h2 class="side-title">Network</h2>
+          <div class="chips" id="presets">
+            <button class="chip" data-preset="clean">Clean LAN</button>
+            <button class="chip" data-preset="good">Good</button>
+            <button class="chip" data-preset="moderate">Moderate</button>
+            <button class="chip" data-preset="poor">Poor</button>
+          </div>
+          <div class="slider"><div class="lbl"><label for="loss">Packet loss</label><output id="lossOut"></output></div>
+            <input type="range" id="loss" min="0" max="50" step="0.5"></div>
+          <div class="slider"><div class="lbl"><label for="corrupt">Corruption</label><output id="corruptOut"></output></div>
+            <input type="range" id="corrupt" min="0" max="30" step="0.5"></div>
+          <div class="slider"><div class="lbl"><label for="jitter">Jitter</label><output id="jitterOut"></output></div>
+            <input type="range" id="jitter" min="0" max="1000" step="5"></div>
+          <div class="slider"><div class="lbl"><label for="capacity">Capacity</label><output id="capacityOut"></output></div>
+            <input type="range" id="capacity" min="0" max="19" step="1"></div>
+          <div class="slider"><div class="lbl"><label for="severity">Congestion severity</label><output id="severityOut"></output></div>
+            <input type="range" id="severity" min="0" max="100" step="5"></div>
+          <label class="toggle">ACK / NAK loss
+            <input type="checkbox" id="ackLoss"><span class="sw"></span>
+          </label>
+          <p class="hint" id="impairHint">Applied to outgoing traffic.</p>
+        </section>
+
+        <section class="side-section" id="windowCard">
+          <h2 class="side-title">Sliding window</h2>
+          <div class="field">
+            <label for="chunk">Packet payload</label>
+            <select class="input" id="chunk">
+              <option value="512">512 B</option>
+              <option value="1024">1 KB</option>
+              <option value="1400">1400 B</option>
+              <option value="4096">4 KB</option>
+              <option value="8192">8 KB</option>
+              <option value="16384">16 KB</option>
+              <option value="32768">32 KB</option>
+              <option value="60000">60 KB</option>
+            </select>
+          </div>
+          <div class="fields">
+            <div class="field"><label for="initialWindow">Initial</label><input class="input" id="initialWindow" type="number" min="1" max="4096"></div>
+            <div class="field"><label for="minWindow">Min</label><input class="input" id="minWindow" type="number" min="1" max="4096"></div>
+            <div class="field"><label for="maxWindow">Max</label><input class="input" id="maxWindow" type="number" min="1" max="4096"></div>
+          </div>
+          <label class="toggle" title="Off keeps the window fixed at its initial size">Adaptive window
+            <input type="checkbox" id="adaptive"><span class="sw"></span>
+          </label>
+        </section>
+      </div>
+    </aside>
+
+    <!-- ============================================================ MAIN -->
+    <main class="main">
+      <section class="box" id="senderCard">
+        <header class="box-header">
+          <h2>Sender</h2>
+          <div class="stats" id="txStats"></div>
+          <div class="grid-tools">
+            <button class="btn small" id="txFollow" aria-pressed="true" title="Keep the sliding window in view">Follow</button>
+          </div>
+        </header>
+        <div class="box-body">
+          <div class="legend" id="txLegend"></div>
+          <div class="canvas-wrap">
+            <canvas class="grid" id="txCanvas"></canvas>
+            <div class="placeholder" id="txPlaceholder"></div>
+          </div>
+          <canvas class="minimap" id="txMini" title="Whole file. Click to jump."></canvas>
+        </div>
+      </section>
+
+      <section class="box" id="receiverCard">
+        <header class="box-header">
+          <h2>Receiver</h2>
+          <div class="stats" id="rxStats"></div>
+          <div class="grid-tools">
+            <span class="source" id="rxSource"></span>
+            <button class="btn small" id="rxFollow" aria-pressed="true" title="Keep the next expected packet in view">Follow</button>
+          </div>
+        </header>
+        <div class="box-body">
+          <div class="legend" id="rxLegend"></div>
+          <div class="canvas-wrap">
+            <canvas class="grid" id="rxCanvas"></canvas>
+            <div class="placeholder" id="rxPlaceholder"></div>
+          </div>
+          <canvas class="minimap" id="rxMini" title="Whole file. Click to jump."></canvas>
+        </div>
+      </section>
+
+      <section class="box" id="chartCard">
+        <header class="box-header">
+          <h2 id="chartTitle">Window size</h2>
+          <div class="chart-legend" id="chartLegend"></div>
+          <div class="grid-tools">
+            <button class="btn small" id="chartRange" aria-pressed="false">Show all</button>
+          </div>
+        </header>
+        <div class="box-body">
+          <div class="chart-wrap"><canvas id="chart"></canvas></div>
+        </div>
+      </section>
+
+      <section class="box" id="logCard">
+        <header class="box-header">
+          <h2>Events</h2>
+          <div class="chips small" id="logFilter">
+            <button class="chip" data-f="all" aria-pressed="true">All</button>
+            <button class="chip" data-f="err" aria-pressed="false">Failures</button>
+            <button class="chip" data-f="win" aria-pressed="false">Window</button>
+            <button class="chip" data-f="rx" aria-pressed="false">Receiver</button>
+          </div>
+          <div class="grid-tools">
+            <label class="toggle small">Auto-scroll <input type="checkbox" id="autoScroll" checked><span class="sw"></span></label>
+            <button class="btn small" id="clearLog">Clear</button>
+          </div>
+        </header>
+        <div class="log" id="log" role="log" aria-live="off"></div>
+      </section>
+    </main>
+
+    <!-- ============================================================ RAIL -->
+    <aside class="rail" id="metrics"></aside>
+  </div>
+
+  <footer class="statusbar" id="statusbar"></footer>
+  <div class="toasts" id="toasts"></div>
+  <div class="tooltip" id="tooltip"></div>
+  <div class="dropveil" id="dropveil"><div>Drop to send</div></div>
+  <script src="qr.js"></script>
+  <script src="app.js"></script>
+</body>
+</html>
